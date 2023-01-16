@@ -3,8 +3,9 @@ package shell
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 
@@ -13,6 +14,8 @@ import (
 
 type object struct {
 	Hash string
+	Name string
+	Size string
 }
 
 type AddOpts = func(*RequestBuilder) error
@@ -97,15 +100,15 @@ func (s *Shell) AddLink(target string) (string, error) {
 }
 
 // AddDir adds a directory recursively with all of the files under it
-func (s *Shell) AddDir(dir string) (string, error) {
+func (s *Shell) AddDir(dir string) (object, error) {
 	stat, err := os.Lstat(dir)
 	if err != nil {
-		return "", err
+		return object{}, err
 	}
 
 	sf, err := files.NewSerialFile(dir, false, stat)
 	if err != nil {
-		return "", err
+		return object{}, err
 	}
 	slf := files.NewSliceDirectory([]files.DirEntry{files.FileEntry(filepath.Base(dir), sf)})
 	reader := files.NewMultiFileReader(slf, true)
@@ -114,18 +117,20 @@ func (s *Shell) AddDir(dir string) (string, error) {
 		Option("recursive", true).
 		Body(reader).
 		Send(context.Background())
+	//fmt.Println(resp.Body)
 	if err != nil {
-		return "", err
+		return object{}, err
 	}
 
 	defer resp.Close()
 
 	if resp.Error != nil {
-		return "", resp.Error
+		return object{}, resp.Error
 	}
 
 	dec := json.NewDecoder(resp.Output)
-	var final string
+
+	var final object
 	for {
 		var out object
 		err = dec.Decode(&out)
@@ -133,14 +138,32 @@ func (s *Shell) AddDir(dir string) (string, error) {
 			if err == io.EOF {
 				break
 			}
-			return "", err
+			return object{}, err
 		}
-		final = out.Hash
+		final = out
+		//fmt.Println(out.Name, out.Size)
 	}
-
-	if final == "" {
-		return "", errors.New("no results received")
-	}
-
 	return final, nil
+}
+
+// AddDir adds a directory recursively with all of the files under it
+func (s *Shell) SwanAddDir(dir string) (*http.Response, error) {
+	stat, err := os.Lstat(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	sf, err := files.NewSerialFile(dir, false, stat)
+	if err != nil {
+		return nil, err
+	}
+	slf := files.NewSliceDirectory([]files.DirEntry{files.FileEntry(filepath.Base(dir), sf)})
+	reader := files.NewMultiFileReader(slf, true)
+
+	resp, err := s.Request("add").
+		Option("recursive", true).
+		Body(reader).
+		SwanSend(context.Background())
+	fmt.Println(resp.Body)
+	return resp, nil
 }

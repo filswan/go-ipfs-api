@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"strconv"
 	"strings"
 )
@@ -79,6 +80,15 @@ func (r *RequestBuilder) Send(ctx context.Context) (*Response, error) {
 	req.Headers = r.headers
 	req.Body = r.body
 	return req.Send(&r.shell.httpcli)
+}
+
+// Send sends the request and return the response.
+func (r *RequestBuilder) SwanSend(ctx context.Context) (*http.Response, error) {
+	req := NewRequest(ctx, r.shell.url, r.command, r.args...)
+	req.Opts = r.opts
+	req.Headers = r.headers
+	req.Body = r.body
+	return req.SwanSend(&r.shell.httpcli)
 }
 
 // Exec sends the request a request and decodes the response.

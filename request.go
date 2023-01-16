@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	files "github.com/ipfs/go-ipfs-files"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
-
-	files "github.com/ipfs/go-ipfs-files"
 )
 
 type Request struct {
@@ -127,6 +126,7 @@ func (r *Request) Send(c *http.Client) (*Response, error) {
 	}
 
 	resp, err := c.Do(req)
+	fmt.Println(resp.Header.Get("test"))
 	if err != nil {
 		return nil, err
 	}
@@ -172,6 +172,29 @@ func (r *Request) Send(c *http.Client) (*Response, error) {
 	}
 
 	return nresp, nil
+}
+
+func (r *Request) SwanSend(c *http.Client) (*http.Response, error) {
+	url := r.getURL()
+	req, err := http.NewRequest("POST", url, r.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	req = req.WithContext(r.Ctx)
+
+	// Add any headers that were supplied via the RequestBuilder.
+	for k, v := range r.Headers {
+		req.Header.Add(k, v)
+	}
+
+	if fr, ok := r.Body.(*files.MultiFileReader); ok {
+		req.Header.Set("Content-Type", "multipart/form-data; boundary="+fr.Boundary())
+		req.Header.Set("Content-Disposition", "form-data; name=\"files\"")
+	}
+
+	resp, err := c.Do(req)
+	return resp, nil
 }
 
 func (r *Request) getURL() string {
