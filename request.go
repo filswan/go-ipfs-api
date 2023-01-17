@@ -126,7 +126,6 @@ func (r *Request) Send(c *http.Client) (*Response, error) {
 	}
 
 	resp, err := c.Do(req)
-	fmt.Println(resp.Header.Get("test"))
 	if err != nil {
 		return nil, err
 	}

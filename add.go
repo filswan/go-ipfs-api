@@ -3,7 +3,7 @@ package shell
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -100,15 +100,15 @@ func (s *Shell) AddLink(target string) (string, error) {
 }
 
 // AddDir adds a directory recursively with all of the files under it
-func (s *Shell) AddDir(dir string) (object, error) {
+func (s *Shell) AddDir(dir string) (string, error) {
 	stat, err := os.Lstat(dir)
 	if err != nil {
-		return object{}, err
+		return "", err
 	}
 
 	sf, err := files.NewSerialFile(dir, false, stat)
 	if err != nil {
-		return object{}, err
+		return "", err
 	}
 	slf := files.NewSliceDirectory([]files.DirEntry{files.FileEntry(filepath.Base(dir), sf)})
 	reader := files.NewMultiFileReader(slf, true)
@@ -117,20 +117,18 @@ func (s *Shell) AddDir(dir string) (object, error) {
 		Option("recursive", true).
 		Body(reader).
 		Send(context.Background())
-	//fmt.Println(resp.Body)
 	if err != nil {
-		return object{}, err
+		return "", err
 	}
 
 	defer resp.Close()
 
 	if resp.Error != nil {
-		return object{}, resp.Error
+		return "", resp.Error
 	}
 
 	dec := json.NewDecoder(resp.Output)
-
-	var final object
+	var final string
 	for {
 		var out object
 		err = dec.Decode(&out)
@@ -138,11 +136,15 @@ func (s *Shell) AddDir(dir string) (object, error) {
 			if err == io.EOF {
 				break
 			}
-			return object{}, err
+			return "", err
 		}
-		final = out
-		//fmt.Println(out.Name, out.Size)
+		final = out.Hash
 	}
+
+	if final == "" {
+		return "", errors.New("no results received")
+	}
+
 	return final, nil
 }
 
@@ -164,6 +166,7 @@ func (s *Shell) SwanAddDir(dir string) (*http.Response, error) {
 		Option("recursive", true).
 		Body(reader).
 		SwanSend(context.Background())
-	fmt.Println(resp.Body)
+	//fmt.Println(resp.Body)
+
 	return resp, nil
 }
