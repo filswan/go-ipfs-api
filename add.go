@@ -149,7 +149,7 @@ func (s *Shell) AddDir(dir string) (string, error) {
 }
 
 // AddDir adds a directory recursively with all of the files under it
-func (s *Shell) SwanAddDir(dir string) (*http.Response, error) {
+func (s *Shell) SwanAddDir(dir string, wallet string, source string, isFolder string) (*http.Response, error) {
 	stat, err := os.Lstat(dir)
 	if err != nil {
 		return nil, err
@@ -164,9 +164,7 @@ func (s *Shell) SwanAddDir(dir string) (*http.Response, error) {
 
 	resp, err := s.Request("add").
 		Option("recursive", true).
-		Body(reader).
+		Body(reader).Header("wallet", wallet).Header("source", source).Header("is_folder", isFolder).
 		SwanSend(context.Background())
-	//fmt.Println(resp.Body)
-
 	return resp, nil
 }
