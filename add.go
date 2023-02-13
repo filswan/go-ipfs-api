@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 
@@ -149,22 +148,34 @@ func (s *Shell) AddDir(dir string) (string, error) {
 }
 
 // AddDir adds a directory recursively with all of the files under it
-func (s *Shell) SwanAddDir(dir string, wallet string, source string, isFolder string) (*http.Response, error) {
-	stat, err := os.Lstat(dir)
+func (s *Shell) SwanAdd(filePath string, wallet string, source string, isFolder string) (object, error) {
+	var final object
+	stat, err := os.Lstat(filePath)
 	if err != nil {
-		return nil, err
+		return final, err
 	}
 
-	sf, err := files.NewSerialFile(dir, false, stat)
+	sf, err := files.NewSerialFile(filePath, false, stat)
 	if err != nil {
-		return nil, err
+		return final, err
 	}
-	slf := files.NewSliceDirectory([]files.DirEntry{files.FileEntry(filepath.Base(dir), sf)})
+	slf := files.NewSliceDirectory([]files.DirEntry{files.FileEntry(filepath.Base(filePath), sf)})
 	reader := files.NewMultiFileReader(slf, true)
 
 	resp, err := s.Request("add").
 		Option("recursive", true).
 		Body(reader).Header("wallet", wallet).Header("source", source).Header("is_folder", isFolder).
 		SwanSend(context.Background())
-	return resp, nil
+	dec := json.NewDecoder(resp.Body)
+	for {
+		var out object
+		err = dec.Decode(&out)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+		}
+		final = out
+	}
+	return final, nil
 }
