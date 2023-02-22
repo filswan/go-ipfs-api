@@ -83,6 +83,23 @@ func (r *RequestBuilder) Send(ctx context.Context) (*Response, error) {
 }
 
 // Send sends the request and return the response.
+func (r *RequestBuilder) AclSend(ctx context.Context) (*Response, error) {
+	req := NewAclRequest(ctx, r.shell.url, r.command, r.args...)
+	req.Opts = r.opts
+	req.Headers = r.headers
+	req.Body = r.body
+	return req.Send(&r.shell.httpcli)
+}
+
+func (r *RequestBuilder) AclGet(ctx context.Context) (*Response, error) {
+	req := NewAclRequest(ctx, r.shell.url, r.command, r.args...)
+	req.Opts = r.opts
+	req.Headers = r.headers
+	req.Body = r.body
+	return req.Get(&r.shell.httpcli)
+}
+
+// Send sends the request and return the response.
 func (r *RequestBuilder) SwanSend(ctx context.Context) (*http.Response, error) {
 	req := NewRequest(ctx, r.shell.url, r.command, r.args...)
 	req.Opts = r.opts
