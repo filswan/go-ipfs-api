@@ -19,19 +19,19 @@ type Data struct {
 	DeletedAt interface{} `json:"deleted_at"`
 }
 
-func (s *Shell) GetUserSubdomain(wallet string, source string) (subdmoanList []string, err error) {
+func (s *Shell) GetUserSubdomain(wallet string, source string) (subdomainList []string, err error) {
 	url := "gateway/get_user_gateway"
 	resq, err := s.Request(url).Option("wallet", wallet).Option("source", source).AclGet(context.Background())
 	if err != nil {
-		return subdmoanList, err
+		return subdomainList, err
 	}
 	var gatewayList GateWayList
 	decoder := json.NewDecoder(resq.Output)
 	decoder.Decode(&gatewayList)
 	for _, gateway := range gatewayList.Data {
 		if gateway.IsActive {
-			subdmoanList = append(subdmoanList, gateway.Subdomain)
+			subdomainList = append(subdomainList, gateway.Subdomain)
 		}
 	}
-	return subdmoanList, err
+	return subdomainList, err
 }
