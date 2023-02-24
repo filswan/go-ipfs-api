@@ -30,7 +30,7 @@ func (s *Shell) GetUserSubdomain(wallet string, source string) (subdomainList []
 	decoder.Decode(&gatewayList)
 	for _, gateway := range gatewayList.Data {
 		if gateway.IsActive {
-			subdomainList = append(subdomainList, gateway.Subdomain)
+			subdomainList = append(subdomainList, gateway.Gateway)
 		}
 	}
 	return subdomainList, err
