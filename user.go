@@ -19,6 +19,16 @@ type Data struct {
 	DeletedAt interface{} `json:"deleted_at"`
 }
 
+type IpfsFileServer struct {
+	Status string             `json:"status"`
+	Data   IpfsFileServerData `json:"data"`
+}
+type IpfsFileServerData struct {
+	FileIpfsCid     string `json:"file_ipfsCid"`
+	DownloadAddress string `json:"download_address"`
+	DownloadURL     string `json:"download_url"`
+}
+
 func (s *Shell) GetUserSubdomain(wallet string, source string) (subdomainList []string, err error) {
 	url := "gateway/get_user_gateway"
 	resq, err := s.Request(url).Option("wallet", wallet).Option("source", source).AclGet(context.Background())
@@ -34,4 +44,17 @@ func (s *Shell) GetUserSubdomain(wallet string, source string) (subdomainList []
 		}
 	}
 	return subdomainList, err
+}
+
+func (s *Shell) GetIpfsFileServer(ipfsCid string) (serverData IpfsFileServerData, err error) {
+	url := "file/get_server"
+	resq, err := s.Request(url).Option("ipfsCid", ipfsCid).AclGet(context.Background())
+	if err != nil {
+		return serverData, err
+	}
+	decoder := json.NewDecoder(resq.Output)
+	var server IpfsFileServer
+	decoder.Decode(&server)
+	serverData = server.Data
+	return serverData, err
 }
