@@ -2,7 +2,7 @@ package shell
 
 import "context"
 import "encoding/json"
-
+import "fmt"
 type GateWayList struct {
 	Status string `json:"status"`
 	Data   []Data `json:"data"`
@@ -51,6 +51,9 @@ func (s *Shell) GetIpfsFileServer(ipfsCid string) (serverData IpfsFileServerData
 	resq, err := s.Request(url).Option("ipfsCid", ipfsCid).AclGet(context.Background())
 	if err != nil {
 		return serverData, err
+	}
+	if resq.Output == nil {
+		return serverData, fmt.Errorf("resq.Output is nil")
 	}
 	decoder := json.NewDecoder(resq.Output)
 	var server IpfsFileServer
